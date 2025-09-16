@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>All Reviews</h2>
+  <hr>
+
+  {% if reviews %}
+    {% for review in reviews %}
+      <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">{{ review.user.username }} on <em>{{ review.movie.name }}</em></h5>
+          <h6 class="card-subtitle mb-2 text-muted">{{ review.date|date:"M j, Y" }}</h6>
+          <p class="card-text">{{ review.comment }}</p>
+
+          <!-- Like button -->
+          <button class="btn btn-outline-success like-btn" data-id="{{ review.id }}">
+            👍 Like (<span id="like-count-{{ review.id }}">{{ review.likes }}</span>)
+          </button>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>No reviews yet.</p>
+  {% endif %}
+</div>
+
+<!-- JavaScript for Like buttons -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const csrftoken = '{{ csrf_token }}';
+  document.querySelectorAll(".like-btn").forEach(button => {
+    button.addEventListener("click", function() {
+      const reviewId = this.dataset.id;
+      fetch(`/movies/reviews/${reviewId}/like/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "Accept": "application/json",
+        },
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.likes !== undefined) {
+          document.getElementById(`like-count-${reviewId}`).innerText = data.likes;
+        }
+      });
+    });
+  });
+});
+</script>
+{% endblock content %}

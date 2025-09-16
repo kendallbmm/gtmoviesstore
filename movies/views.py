@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Movie, Review
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 
 def index(request):
     search_term = request.GET.get('search')
@@ -60,3 +61,15 @@ def delete_review(request, id, review_id):
         user=request.user)
     review.delete()
     return redirect('movies.show', id=id)
+
+@login_required
+def like_review(request, review_id):
+    review = get_object_or_404(Review, id=review_id)
+    review.likes += 1
+    review.save()
+    return JsonResponse({"likes": review.likes})
+
+def reviews_page(request):
+    # Fetch all reviews with related movie and user data
+    reviews = Review.objects.select_related('movie', 'user').order_by('-likes', '-date')
+    return render(request, 'movies/reviews_page.html', {'reviews': reviews})
