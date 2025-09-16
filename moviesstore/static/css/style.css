@@ -39,3 +39,20 @@
   width: fit-content;
   max-height: 400px;
 }
+
+/* Make the html and body fill the viewport */
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+/* Make body a flex column to push footer down */
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Your page content should grow to fill space */
+main {
+    flex: 1;
+}
