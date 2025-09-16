@@ -20,6 +20,7 @@ class Review(models.Model):
     user = models.ForeignKey(User,
         on_delete=models.CASCADE)
     likes = models.PositiveIntegerField(default=0)
+    reported = models.BooleanField(default=False)
     
     def __str__(self):
         return str(self.id) + ' - ' + self.movie.name

@@ -6,7 +6,8 @@
 
   {% if reviews %}
     {% for review in reviews %}
-      <div class="card mb-3 shadow-sm">
+      {% if not review.reported %}
+      <div class="card mb-3 shadow-sm" id="review-{{ review.id }}">
         <div class="card-body">
           <h5 class="card-title">{{ review.user.username }} on <em>{{ review.movie.name }}</em></h5>
           <h6 class="card-subtitle mb-2 text-muted">{{ review.date|date:"M j, Y" }}</h6>
@@ -16,18 +17,28 @@
           <button class="btn btn-outline-success like-btn" data-id="{{ review.id }}">
             👍 Like (<span id="like-count-{{ review.id }}">{{ review.likes }}</span>)
           </button>
+
+          <!-- Report button -->
+          {% if user.is_authenticated %}
+            <button class="btn btn-outline-danger report-btn" data-id="{{ review.id }}">
+              🚨 Report
+            </button>
+          {% endif %}
         </div>
       </div>
+      {% endif %}
     {% endfor %}
   {% else %}
     <p>No reviews yet.</p>
   {% endif %}
 </div>
 
-<!-- JavaScript for Like buttons -->
+<!-- JavaScript for Like button -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
   const csrftoken = '{{ csrf_token }}';
+
+  // Like button
   document.querySelectorAll(".like-btn").forEach(button => {
     button.addEventListener("click", function() {
       const reviewId = this.dataset.id;
@@ -42,10 +53,38 @@ document.addEventListener("DOMContentLoaded", function() {
       .then(data => {
         if (data.likes !== undefined) {
           document.getElementById(`like-count-${reviewId}`).innerText = data.likes;
+        } else if (data.error) {
+          alert(data.error);
         }
-      });
+      })
+      .catch(err => console.error("Error liking review:", err));
     });
   });
+
+  // Report button
+  document.querySelectorAll(".report-btn").forEach(button => {
+    button.addEventListener("click", function() {
+      const reviewId = this.dataset.id;
+      fetch(`/movies/reviews/${reviewId}/report/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "Accept": "application/json",
+        },
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          const reviewElement = document.getElementById(`review-${reviewId}`);
+          if (reviewElement) reviewElement.remove();
+        } else if (data.error) {
+          alert(data.error);
+        }
+      })
+      .catch(err => console.error("Error reporting review:", err));
+    });
+  });
+
 });
 </script>
 {% endblock content %}

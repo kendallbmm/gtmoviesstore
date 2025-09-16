@@ -34,23 +34,32 @@
         <hr />
         <ul class="list-group">
           {% for review in template_data.reviews %}
-          <li class="list-group-item pb-3 pt-3">
-            <h5 class="card-title">Review by {{ review.user.username }}</h5>
-            <h6 class="card-subtitle mb-2 text-muted">{{ review.date }}</h6>
-            <p class="card-text">{{ review.comment }}</p>
+            {% if not review.reported %}
+            <li class="list-group-item pb-3 pt-3" id="review-{{ review.id }}">
+              <h5 class="card-title">Review by {{ review.user.username }}</h5>
+              <h6 class="card-subtitle mb-2 text-muted">{{ review.date }}</h6>
+              <p class="card-text">{{ review.comment }}</p>
 
-            <!-- Like button -->
-            <button class="btn btn-outline-success like-btn" data-id="{{ review.id }}">
-              👍 Like (<span id="like-count-{{ review.id }}">{{ review.likes }}</span>)
-            </button>
+              <!-- Like button -->
+              <button class="btn btn-outline-success like-btn" data-id="{{ review.id }}">
+                👍 Like (<span id="like-count-{{ review.id }}">{{ review.likes }}</span>)
+              </button>
 
-            {% if user.is_authenticated and user == review.user %}
-            <a class="btn btn-primary"
-               href="{% url 'movies.edit_review' id=template_data.movie.id review_id=review.id %}">Edit</a>
-            <a class="btn btn-danger"
-               href="{% url 'movies.delete_review' id=template_data.movie.id review_id=review.id %}">Delete</a>
+              <!-- Report button -->
+              {% if user.is_authenticated %}
+                <button class="btn btn-outline-danger report-btn" data-id="{{ review.id }}">
+                  🚨 Report
+                </button>
+              {% endif %}
+
+              {% if user.is_authenticated and user == review.user %}
+                <a class="btn btn-primary"
+                  href="{% url 'movies.edit_review' id=template_data.movie.id review_id=review.id %}">Edit</a>
+                <a class="btn btn-danger"
+                  href="{% url 'movies.delete_review' id=template_data.movie.id review_id=review.id %}">Delete</a>
+              {% endif %}
+            </li>
             {% endif %}
-          </li>
           {% endfor %}
         </ul>
 
@@ -111,6 +120,36 @@ document.addEventListener("DOMContentLoaded", function() {
         }
       })
       .catch(err => console.error("Error liking review:", err));
+    });
+  });
+});
+</script>
+
+<!-- JavaScript for Report button -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const csrftoken = '{{ csrf_token }}';
+  document.querySelectorAll(".report-btn").forEach(button => {
+    button.addEventListener("click", function() {
+      const reviewId = this.dataset.id;
+      fetch(`/movies/reviews/${reviewId}/report/`, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "Accept": "application/json",
+        },
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Remove the review from the page
+          const reviewElement = document.getElementById(`review-${reviewId}`);
+          if (reviewElement) reviewElement.remove();
+        } else if (data.error) {
+          alert(data.error);
+        }
+      })
+      .catch(err => console.error("Error reporting review:", err));
     });
   });
 });
